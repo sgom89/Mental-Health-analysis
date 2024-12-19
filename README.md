@@ -18,6 +18,7 @@ Usage
 Run the application:
 text
 python app.py
+
 Open a web browser and navigate to http://localhost:5000
 
 
