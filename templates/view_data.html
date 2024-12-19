@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>View Mental Health Data</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            line-height: 1.6;
+            margin: 0;
+            padding: 0;
+            background-color: #f0f5f9;
+            color: #1e2022;
+        }
+        .container {
+            width: 90%;
+            margin: auto;
+            overflow: hidden;
+            padding: 20px;
+        }
+        header {
+            background: #3282b8;
+            color: white;
+            padding: 1rem 0;
+            text-align: center;
+        }
+        nav {
+            background: #0f4c75;
+            padding: 0.5rem 0;
+            text-align: center;
+        }
+        nav a {
+            color: white;
+            text-decoration: none;
+            padding: 0.5rem 1rem;
+            margin: 0 0.5rem;
+            display: inline-block;
+        }
+        nav a:hover {
+            background-color: #3282b8;
+        }
+        h1, h2 {
+            color: #0f4c75;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 20px;
+        }
+        th, td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: left;
+        }
+        th {
+            background-color: #0f4c75;
+            color: white;
+        }
+        tr:nth-child(even) {
+            background-color: #f2f2f2;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="container">
+            <h1>Mental Health Data Analysis</h1>
+        </div>
+    </header>
+
+    <nav>
+        <a href="/">Home</a>
+        <a href="/data">View Data</a>
+        <a href="/analyze">Analyze Data</a>
+        <a href="/correlation">Correlation Analysis</a>
+        
+    </nav>
+
+    <div class="container">
+        <h2>Data Preview</h2>
+        <table>
+            <thead>
+                <tr>
+                    {% for column in columns %}
+                    <th>{{ column }}</th>
+                    {% endfor %}
+                </tr>
+            </thead>
+            <tbody>
+                {% for row in data %}
+                <tr>
+                    {% for column in columns %}
+                    <td>{{ row[column] }}</td>
+                    {% endfor %}
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+
+        <h2>Column Information</h2>
+        <table>
+            <thead>
+                <tr>
+                    <th>Column Name</th>
+                    <th>Data Type</th>
+                    <th>Description</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for column in column_info %}
+                <tr>
+                    <td>{{ column.name }}</td>
+                    <td>{{ column.type }}</td>
+                    <td>{{ column.description }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+
+        <h2>Basic Statistics</h2>
+        {% for stat in basic_stats %}
+        <h3>{{ stat.name }}</h3>
+        <table>
+            <tr>
+                <th>Count</th>
+                <th>Mean</th>
+                <th>Median</th>
+                <th>Std Dev</th>
+                <th>Min</th>
+                <th>Max</th>
+            </tr>
+            <tr>
+                <td>{{ stat.count }}</td>
+                <td>{{ stat.mean }}</td>
+                <td>{{ stat.median }}</td>
+                <td>{{ stat.std }}</td>
+                <td>{{ stat.min }}</td>
+                <td>{{ stat.max }}</td>
+            </tr>
+        </table>
+        {% endfor %}
+
+        <h2>Data Quality Information</h2>
+        <p>Total number of rows: {{ total_rows }}</p>
+        <h3>Missing Values:</h3>
+        <ul>
+            {% for column, missing in missing_values.items() %}
+            <li>{{ column }}: {{ missing }}</li>
+            {% endfor %}
+        </ul>
+    </div>
+</body>
+</html>

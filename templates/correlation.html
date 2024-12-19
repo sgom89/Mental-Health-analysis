@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Category Correlation Analysis - Mental Health Data</title>
+    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            line-height: 1.6;
+            margin: 0;
+            padding: 0;
+            background-color: #f0f5f9;
+            color: #1e2022;
+        }
+        .container {
+            width: 90%;
+            margin: auto;
+            overflow: hidden;
+            padding: 20px;
+        }
+        header {
+            background: #3282b8;
+            color: white;
+            padding: 1rem 0;
+            text-align: center;
+        }
+        nav {
+            background: #0f4c75;
+            padding: 0.5rem 0;
+            text-align: center;
+        }
+        nav a {
+            color: white;
+            text-decoration: none;
+            padding: 0.5rem 1rem;
+            margin: 0 0.5rem;
+            display: inline-block;
+        }
+        nav a:hover {
+            background-color: #3282b8;
+        }
+        h1, h2 {
+            color: #0f4c75;
+        }
+        form {
+            background: white;
+            padding: 20px;
+            margin-bottom: 20px;
+            border-radius: 5px;
+        }
+        select, button {
+            padding: 10px;
+            margin: 10px 0;
+        }
+        #results {
+            background: white;
+            padding: 20px;
+            border-radius: 5px;
+        }
+        .error {
+            color: red;
+            font-weight: bold;
+        }
+        .chart-options {
+            margin-top: 20px;
+        }
+        .chart-options label {
+            margin-right: 15px;
+        }
+        .category-selection {
+            margin-bottom: 10px;
+        }
+        #addCategory {
+            margin-top: 10px;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="container">
+            <h1>Mental Health Data Analysis</h1>
+        </div>
+    </header>
+
+    <nav>
+        <a href="/">Home</a>
+        <a href="/data">View Data</a>
+        <a href="/analyze">Analyze Data</a>
+        <a href="/correlation">Category Correlation</a>
+        
+    </nav>
+
+    <div class="container">
+        <h2>Category Correlation Analysis</h2>
+        <form id="categoryForm">
+            <div id="categorySelections">
+                <div class="category-selection">
+                    <label for="category1">Select category 1:</label>
+                    <select id="category1" name="category1" class="category-select">
+                        {% for column in columns %}
+                        <option value="{{ column }}">{{ column }}</option>
+                        {% endfor %}
+                    </select>
+                    <select id="option1" name="option1" class="option-select"></select>
+                </div>
+            </div>
+            <button type="button" id="addCategory">Add Category</button>
+            <button type="submit">Analyze Correlation</button>
+        </form>
+
+        <div class="chart-options">
+            <label>
+                <input type="radio" name="chartType" value="bar" checked> Bar Chart
+            </label>
+            <label>
+                <input type="radio" name="chartType" value="pie"> Pie Chart
+            </label>
+            <label>
+                <input type="radio" name="chartType" value="heatmap"> Heatmap
+            </label>
+        </div>
+
+        <div id="error" class="error"></div>
+        <div id="results">
+            <div id="plot"></div>
+            <div id="analysisResult"></div>
+        </div>
+    </div>
+
+    <script>
+        let categoryCount = 1;
+        const maxCategories = 4;
+
+        function updateOptions(categoryId, optionId) {
+            const category = document.getElementById(categoryId).value;
+            fetch('/get_options', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                },
+                body: 'category=' + encodeURIComponent(category)
+            })
+            .then(response => response.json())
+            .then(data => {
+                const optionSelect = document.getElementById(optionId);
+                optionSelect.innerHTML = '<option value="All">All</option>';
+                data.options.forEach(option => {
+                    const optElement = document.createElement('option');
+                    optElement.value = option;
+                    optElement.textContent = option;
+                    optionSelect.appendChild(optElement);
+                });
+            });
+        }
+
+        document.getElementById('addCategory').addEventListener('click', function() {
+            if (categoryCount < maxCategories) {
+                categoryCount++;
+                const newCategoryDiv = document.createElement('div');
+                newCategoryDiv.className = 'category-selection';
+                newCategoryDiv.innerHTML = `
+                    <label for="category${categoryCount}">Select category ${categoryCount}:</label>
+                    <select id="category${categoryCount}" name="category${categoryCount}" class="category-select">
+                        {% for column in columns %}
+                        <option value="{{ column }}">{{ column }}</option>
+                        {% endfor %}
+                    </select>
+                    <select id="option${categoryCount}" name="option${categoryCount}" class="option-select"></select>
+                `;
+                document.getElementById('categorySelections').appendChild(newCategoryDiv);
+                updateOptions(`category${categoryCount}`, `option${categoryCount}`);
+            }
+            if (categoryCount === maxCategories) {
+                this.disabled = true;
+            }
+        });
+
+        document.getElementById('categorySelections').addEventListener('change', function(e) {
+            if (e.target.classList.contains('category-select')) {
+                const categoryId = e.target.id;
+                const optionId = 'option' + categoryId.slice(-1);
+                updateOptions(categoryId, optionId);
+            }
+        });
+
+        let plotData;
+        let plotLayout;
+
+        document.getElementById('categoryForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            const formData = {};
+            for (let i = 1; i <= categoryCount; i++) {
+                formData[`category${i}`] = document.getElementById(`category${i}`).value;
+                formData[`option${i}`] = document.getElementById(`option${i}`).value;
+            }
+            
+            fetch('/analyze_correlation', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(formData)
+            })
+            .then(response => {
+                if (!response.ok) {
+                    return response.text().then(text => {
+                        throw new Error(text || response.statusText);
+                    });
+                }
+                return response.json();
+            })
+            .then(data => {
+                if (data.error) {
+                    throw new Error(data.error);
+                }
+                plotData = data.plot_data;
+                plotLayout = data.layout;
+                updateChart(document.querySelector('input[name="chartType"]:checked').value);
+                document.getElementById('analysisResult').innerHTML = data.analysis_text;
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                document.getElementById('error').textContent = 'An error occurred: ' + error.message;
+            });
+        });
+
+        function updateChart(chartType) {
+            switch(chartType) {
+                case 'bar':
+                    Plotly.newPlot('plot', plotData.bar, plotLayout.bar);
+                    break;
+                case 'pie':
+                    Plotly.newPlot('plot', plotData.pie, plotLayout.pie);
+                    break;
+                case 'heatmap':
+                    Plotly.newPlot('plot', plotData.heatmap, plotLayout.heatmap);
+                    break;
+            }
+        }
+
+        document.querySelectorAll('input[name="chartType"]').forEach(radio => {
+            radio.addEventListener('change', (e) => {
+                if (plotData) {
+                    updateChart(e.target.value);
+                }
+            });
+        });
+
+        // Trigger initial options load
+        updateOptions('category1', 'option1');
+    </script>
+</body>
+</html>

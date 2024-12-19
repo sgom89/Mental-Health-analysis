@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Analyze Mental Health Data</title>
+    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            line-height: 1.6;
+            margin: 0;
+            padding: 0;
+            background-color: #f0f5f9;
+            color: #1e2022;
+        }
+        .container {
+            width: 90%;
+            margin: auto;
+            overflow: hidden;
+            padding: 20px;
+        }
+        header {
+            background: #3282b8;
+            color: white;
+            padding: 1rem 0;
+            text-align: center;
+        }
+        nav {
+            background: #0f4c75;
+            padding: 0.5rem 0;
+            text-align: center;
+        }
+        nav a {
+            color: white;
+            text-decoration: none;
+            padding: 0.5rem 1rem;
+            margin: 0 0.5rem;
+            display: inline-block;
+        }
+        nav a:hover {
+            background-color: #3282b8;
+        }
+        h1, h2 {
+            color: #0f4c75;
+        }
+        form {
+            background: white;
+            padding: 20px;
+            margin-bottom: 20px;
+            border-radius: 5px;
+        }
+        select, button {
+            padding: 10px;
+            margin: 10px 0;
+        }
+        #results {
+            background: white;
+            padding: 20px;
+            border-radius: 5px;
+        }
+        .error {
+            color: red;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="container">
+            <h1>Mental Health Data Analysis</h1>
+        </div>
+    </header>
+
+    <nav>
+        <a href="/">Home</a>
+        <a href="/data">View Data</a>
+        <a href="/analyze">Analyze Data</a>
+        <a href="/correlation">Correlation Analysis</a>
+       
+    </nav>
+
+    <div class="container">
+        <h2>Analyze Data</h2>
+        <form id="analyzeForm">
+            <label for="column">Select a column to analyze:</label>
+            <select id="column" name="column">
+                {% for column in columns %}
+                <option value="{{ column }}">{{ column }}</option>
+                {% endfor %}
+            </select>
+            <button type="submit">Analyze</button>
+        </form>
+
+        <div id="error" class="error"></div>
+        <div id="results">
+            <div id="plot"></div>
+            <div id="statistics"></div>
+        </div>
+    </div>
+
+    <script>
+        document.getElementById('analyzeForm').addEventListener('submit', function(e) {
+        e.preventDefault();
+        var column = document.getElementById('column').value;
+        document.getElementById('error').textContent = '';
+        document.getElementById('plot').innerHTML = '';
+        document.getElementById('statistics').innerHTML = '';
+        
+        fetch('/analyze_data', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+            },
+            body: 'column=' + encodeURIComponent(column)
+        })
+        .then(response => {
+            if (!response.ok) {
+                throw new Error('Network response was not ok');
+            }
+            return response.json();
+        })
+        .then(data => {
+            if (data.error) {
+                document.getElementById('error').textContent = 'Error: ' + data.error;
+            } else {
+                // Plot histogram
+                Plotly.newPlot('plot', data.histogram);
+
+                // Display statistics
+                var statsHtml = '<h3>Statistics for ' + column + '</h3>';
+                for (var key in data.statistics) {
+                    statsHtml += '<p><strong>' + key + ':</strong> ' + data.statistics[key] + '</p>';
+                }
+                document.getElementById('statistics').innerHTML = statsHtml;
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            document.getElementById('error').textContent = 'An error occurred: ' + error.message;
+        });
+    });
+
+    </script>
+</body>
+</html>
